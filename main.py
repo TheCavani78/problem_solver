@@ -1,10 +1,9 @@
 import pddlpy
-import os
 from solver import Solver
+from config import cfg
 
 
-print(os.path.abspath(os.path.curdir))
-domprob = pddlpy.DomainProblem("./pddl-lib/examples-pddl/domain-03.pddl", "./pddl-lib/examples-pddl/problem-03.pddl")
+domprob = pddlpy.DomainProblem(cfg["domain"], cfg["problem"])
 g = Solver(domprob).relaxed_graph_plan
 print(g.layers)
 print(g.node_labels)
