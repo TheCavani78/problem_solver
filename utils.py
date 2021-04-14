@@ -26,7 +26,7 @@ def contains(d1, d2):
     """Returns True if d2 is a (potentially nested) sub-dict of d1"""
     if any((not hasattr(d1, 'keys'), not hasattr(d2, 'keys'))):
         return d1 == d2
-    return all([contains(d1[k], d2[k]) for k in d2.keys()])
+    return all([contains(d1[k], d2[k]) if k in d1.keys() else False for k in d2.keys()])
 
 
 # ----------------------------------------------- VARIABLES ASSIGNATION ------------------------------------------------
