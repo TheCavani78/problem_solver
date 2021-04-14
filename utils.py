@@ -17,7 +17,7 @@ def add_to_sets_dict(sets_dict, key, value):
 
 
 def merge_sets_dicts(d1, d2):
-    """Merges input sets dictionaries"""
+    """Merges input sets dictionaries into a new one"""
     k1, k2 = d1.keys(), d2.keys()
     return {**{k: d1[k] | d2[k] for k in k1 & k2}, **{k: d1[k] for k in k1 - k2}, **{k: d2[k] for k in k2 - k1}}
 
