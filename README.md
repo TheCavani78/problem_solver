@@ -1,4 +1,13 @@
 # problem_solver
 Solver pour le cours d'Optimisation
 
-L'objectif est de finalement pouvoir executer le solver à l'aide d'un fichier python solve.py qui résout le problème décrit par les fichiers renseignés dans la config
+Installation des packages:
+lancer la commande :
+pip install -r requirements.txt
+ou:
+pip3 install -r requirements.txt
+
+Renseigner ensuite l'emplacement des fichiers domaine et problem dans la config (config.py)
+
+Executer ensuite le fichier main.py
+

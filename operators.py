@@ -1,5 +1,5 @@
 from frozendict import frozendict
-from utils import add_to_sets_dict, merge_sets_dicts, VariablesAssign
+from utils import add_to_sets_dict, merge_sets_dicts, invert_dict, VariablesAssign
 
 
 class OperatorCell:
@@ -11,8 +11,16 @@ class OperatorCell:
         self.op = self._get_generic_op(self.op_name, self.dp)
         self.i_pos, self.i_neg, self.o_pos, self.o_neg = self._parse_op(self.op, self.forward)
         self.input_statements = merge_sets_dicts(self.i_pos, self.i_neg)
-        self.vars = self._vars(self.input_statements)
-        self.vars_assign = VariablesAssign(self.vars)
+
+        self.object_to_type = self.dp.worldobjects()
+        self.types_to_objects = invert_dict(self.object_to_type)
+        self.object_to_objects = {obj: self.types_to_objects[self.object_to_type[obj]]
+                                  for obj in self.object_to_type.keys()}
+
+        self.vars_pos, self.vars_neg = self._vars(self.i_pos), self._vars(self.i_neg)
+        self.vars_neg_subs = {var: self.op.variable_list[var] if var[0] == '?' else self.object_to_objects[var]
+                              for var in self.vars_neg - self.vars_pos}
+        self.vars_assign = VariablesAssign(self.vars_pos | self.vars_neg)
 
     @staticmethod
     def _build_statements_dict(statements):
@@ -49,29 +57,39 @@ class OperatorCell:
         )
         return op_statements
 
-    def effects_of_assignation(self, assignation, statements_dict):
+    @staticmethod
+    def effects_of_assignation(assignation, statements_dict):
         """Given an assignation in the {var_name_1: value_1, ...} format, returns all the effects of said assignation
         as a set of statements"""
         effects = set()
-        for operator, vars_and_consts in statements_dict.items():
-            effects |= {(operator, *(assignation[vc] if vc in self.vars else vc for vc in vc_list))
-                        for vc_list in vars_and_consts}
+        for operator, variables in statements_dict.items():
+            effects |= {(operator, *(assignation[vc] for vc in vc_list)) for vc_list in variables}
         return frozenset(effects)
 
     def get_possible_assignations(self, statements):
         """From an input set of statements, determines all possible variables assignation that can lead to an action
         using the VariablesAssign structure and keeps only those which meet the feasibility criteria: all positive
         preconditions are in input statements and no negatives are"""
-        vars_partial_assignations = sum([
+        pos_statements = [st for st in statements if st[0] in self.i_pos.keys()]
+
+        pos_assigns = sum([
             [frozendict({var: val for var, val in zip(var_names, s[1:])}) for var_names in self.input_statements[s[0]]]
-            for s in statements
+            for s in list(pos_statements)
         ], [])
-        vars_possible_assignations = filter(
+        no_pos_assigns = sum(
+            [[frozendict({var: val}) for val in self.vars_neg_subs[var]] for var in self.vars_neg_subs.keys()], []
+        )
+
+        possible_assignations = set()
+        possible_assignations |= self.vars_assign.process_assignations(pos_assigns)
+        possible_assignations |= self.vars_assign.process_assignations(no_pos_assigns)
+        possible_assignations = list(filter(
             lambda assign: all([len(statements & self.effects_of_assignation(assign, self.i_neg)) == 0,
                                 statements.issuperset(self.effects_of_assignation(assign, self.i_pos))]),
-            self.vars_assign.process_assignations(list(vars_partial_assignations))
-        )
-        return vars_possible_assignations
+            possible_assignations
+        ))
+        self.vars_assign.reset()
+        return possible_assignations
 
     def get_possible_actions(self, statements):
         """Given a set of statements, finds all suitable variables assignations and returns the associated actions

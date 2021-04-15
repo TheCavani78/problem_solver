@@ -6,7 +6,7 @@ import itertools as itt
 class GraphManager:
     """Additional structure to handle layered graphs"""
     def __init__(self):
-        self.graph = nx.Graph()
+        self.graph = nx.DiGraph()
         self.node_labels = []  # id to label
         self.nodes_indices = {}  # label to id with said label
         self.count = 0
@@ -32,7 +32,7 @@ class GraphManager:
             edges += [(i1, i2) for i1, i2 in itt.product(self.layers[-1]["nodes"], nodes_indices)
                       if connection_func(self.node_labels[i1], self.node_labels[i2])]
         if inter_connection_func is not None:
-            edges += [(i1, i2) for i1, i2 in itt.combinations(nodes_indices, r=2)
+            edges += [(i1, i2) for i1, i2 in itt.permutations(nodes_indices, r=2)
                       if inter_connection_func(self.node_labels[i1], self.node_labels[i2])]
         self.layers.append({"nodes": nodes_indices, "nb": len(self.layers), **layer_params})
         self.graph.add_edges_from(edges)

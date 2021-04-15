@@ -12,8 +12,10 @@ def add_to_sets_dict(sets_dict, key, value):
     key is not in the dictionary yet"""
     if key in sets_dict.keys():
         sets_dict[key].add(value)
+        return True
     else:
         sets_dict[key] = {value}
+        return False
 
 
 def merge_sets_dicts(d1, d2):
@@ -29,6 +31,44 @@ def contains(d1, d2):
     return all([contains(d1[k], d2[k]) if k in d1.keys() else False for k in d2.keys()])
 
 
+def invert_dict(d):
+    """Returns the inverse dict of input dict"""
+    inv = {}
+    for key, val in d.items():
+        add_to_sets_dict(inv, val, key)
+    return inv
+
+
+# --------------------------------------------------- WEIGHTED QUEUE ---------------------------------------------------
+
+
+class WeightedQueue:
+    """Acts like a queue with weights that pops the smallest weighted elem first"""
+    def __init__(self):
+        self.weights = np.empty((0,))
+        self.values = {}
+
+    def insert(self, weight, value):
+        already_assigned = add_to_sets_dict(self.values, weight, value)
+        if not already_assigned:
+            self.weights = np.sort(np.concatenate([self.weights, [weight]]))
+
+    def pop(self):
+        w = self.weights[0]
+        values = list(self.values[w])
+        if len(values) == 1:
+            [val] = values
+            del self.values[w]
+            self.weights = self.weights[1:]
+        else:
+            val = values[int(np.random.randint(len(values)))]
+            self.values[w].discard(val)
+        return w, val
+
+    def is_empty(self):
+        return len(self.weights) == 0
+
+
 # ----------------------------------------------- VARIABLES ASSIGNATION ------------------------------------------------
 
 
@@ -40,6 +80,22 @@ class VariablesAssign:
         self.var_names = frozenset(var_names)
         self.nb_vars = len(self.var_names)
         self.tree = {}  # The tree used for this application is a nested dictionary
+        
+    @staticmethod
+    def _compatible_trees_and_full_inclusion(tree, assignation):
+        """Given a tree and a partial assignation, returns all the sub-trees which root label are compatible with said
+        assignation, and returns the only one that is completely contained in assignation if it exists (which is
+        specified by the full_inclusion boolean)"""
+        compatible_trees, full_inclusion = set(), False
+        for p_assign in tree.keys():
+            matching = [assignation[var] == val for var, val in p_assign.items() if var in assignation.keys()]
+            if all(matching):
+                if len(matching) == len(p_assign):
+                    full_inclusion = True
+                    compatible_trees = [p_assign]
+                    break
+                compatible_trees |= {p_assign}
+        return compatible_trees, full_inclusion
 
     def _update_tree(self, cache, tree, assignation):
         """Pushes a new variables assignation into the current tree and returns all (possibly none) total assignations
@@ -49,16 +105,8 @@ class VariablesAssign:
         elif len(assignation) == self.nb_vars:
             return {assignation}
 
-        compatible_trees, add_to_tree = set(), True
-        for p_assign in tree.keys():
-            matching = [assignation[var] == val for var, val in p_assign.items() if var in assignation.keys()]
-            if all(matching):
-                if len(matching) == len(p_assign):
-                    add_to_tree = False
-                    compatible_trees = [p_assign]
-                    break
-                compatible_trees |= {p_assign}
-        if add_to_tree:
+        compatible_trees, full_inclusion = self._compatible_trees_and_full_inclusion(tree, assignation)
+        if not full_inclusion:
             tree.update({assignation: {}})
             compatible_trees |= {assignation}
 
@@ -79,7 +127,6 @@ class VariablesAssign:
                 full_assignations |= self._update_tree(
                     {}, self.tree, frozendict({var: p_assign[var] for var in p_assign.keys() & self.var_names})
                 )
-        self.reset()
         return full_assignations
 
     def reset(self):
