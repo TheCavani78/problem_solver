@@ -1,5 +1,6 @@
 # problem_solver
 Solver pour le cours d'Optimisation
+GROUPE 5: ABDOULI KARIM, ANKRAH DYLAN, COMBELLES CHARLES, ZAHM UGO
 
 Installation des packages:
 lancer la commande :

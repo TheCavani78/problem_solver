@@ -1,6 +1,6 @@
 from operators import OperatorsManager
 from graph import GraphManager
-from utils import WeightedQueue
+from utils import merge_sets_dicts, WeightedQueue
 import functools as fct
 
 
@@ -22,6 +22,7 @@ class Solver:
         while True:
             possible_actions = self.operators_manager.get_applicable_actions(total_statements) \
                 + [self.operators_manager.void_action(total_statements)]
+
             new_statements = fct.reduce(
                 lambda s1, s2: s1 | s2, [action["effect_pos"] for action in possible_actions], set()
             )
@@ -31,12 +32,23 @@ class Solver:
                 break
             total_statements = total_statements | new_statements
 
-            rgp.add_layer(possible_actions,
-                          connection_func=lambda statement, action: statement in action["precond_pos"],
-                          layer_params={"type": "actions"})
-            rgp.add_layer(total_statements,
-                          connection_func=lambda action, statement: statement in action["effect_pos"],
-                          layer_params={"type": "statements"})
+            possible_precond_per_name, possible_effect_per_name = {}, {}
+            for action in possible_actions:
+                possible_precond_per_name = merge_sets_dicts(possible_precond_per_name,
+                                                             {action["name"]: action["precond_pos"]})
+                possible_effect_per_name = merge_sets_dicts(possible_effect_per_name,
+                                                            {action["name"]: action["effect_pos"]})
+
+            rgp.add_layer(
+                list(possible_precond_per_name.keys()),
+                connection_func=lambda statement, action: statement in possible_precond_per_name[action],
+                layer_params={"type": "actions"}
+            )
+            rgp.add_layer(
+                total_statements,
+                connection_func=lambda action, statement: statement in possible_effect_per_name[action],
+                layer_params={"type": "statements"}
+            )
 
             if total_statements.issuperset(self.goal_state):
                 # Or breaks when relaxed final state is reached
