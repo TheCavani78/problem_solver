@@ -73,7 +73,9 @@ class Solver:
 
     def compute_heuristic(self, state, mode='h_max'):
         """ Compute heuristic value for a given (state, action). """
-        assert mode in ('h_plus', 'h_max')
+        assert mode in ('h_plus', 'h_max', 'zero')
+        if mode == 'zero':
+            return 0
         values_table = {}
         gs_values = [self.gs(self.rgp, state, max(self.rgp.nodes_indices[goal_atom_index]), values_table)
                      for goal_atom_index in self.goal_state]
@@ -82,13 +84,13 @@ class Solver:
     def solve(self, mode='h_max'):
         """Applies the A* algorithm with specified heuristic to find a plan"""
         if self.unsolvable:
-            return None
+            return 0, None
         weighted_queue, final_state, processed_states = WeightedQueue(), self.goal_state, set()
         weighted_queue.insert(0, (self.initial_state, ()))
         while not weighted_queue.is_empty():
             cost, (active_state, past_actions) = weighted_queue.pop()
             if active_state.issuperset(final_state):
-                return past_actions
+                return len(processed_states), past_actions
             possible_actions = self.operators_manager.get_applicable_actions(active_state)
             for action in possible_actions:
                 new_state = (active_state - action['effect_neg']) | action['effect_pos']
@@ -97,16 +99,17 @@ class Solver:
                     new_cost = len(past_actions) + 1 + self.compute_heuristic(new_state, mode=mode)
                     weighted_queue.insert(new_cost, (new_state, past_actions + (action,)))
                     processed_states.update({new_state_hash})
-        return None
+        return len(processed_states), None
 
     def display_plan(self, plan):
         """Given a plan computed by self.solve, prints the detail of its functioning"""
+        nb_steps, actions = plan
         if plan is None:
             print('No plan found')
         else:
-            print('Plan of length ' + str(len(plan)) + ' found:')
+            print('Plan of length ' + str(len(actions)) + ' found in ' + str(nb_steps) + ' node explorations:')
             state = set(self.initial_state)
-            for action in plan:
+            for action in actions:
                 print('    current state: ' + str(state))
                 print(action['name'] + ': ')
                 print('    needs: ' + str(set(action['precond_pos'])))

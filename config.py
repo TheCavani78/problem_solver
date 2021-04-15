@@ -1,9 +1,5 @@
 cfg = {
     'domain': './other_examples/domaine.pddl',
     'problem': './other_examples/probleme2.pddl',
+    'heuristic': 'h_max',  # CHOICES are "h_max", "h_plus" and "zero"
 }
-
-# cfg = {
-#     'domain': './examples-pddl/domain-05.pddl',
-#     'problem': './examples-pddl/problem-05.pddl',
-# }

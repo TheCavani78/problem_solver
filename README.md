@@ -12,3 +12,6 @@ Renseigner ensuite l'emplacement des fichiers domaine et problem dans la config 
 
 Executer ensuite le fichier main.py
 
+
+Le calcul des heuristiques manque d'optimisation, et est parfois plus lent qu'une recherche en largur, mais explore moins de noeuds
+
